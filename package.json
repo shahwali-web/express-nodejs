@@ -16,5 +16,11 @@
     "url": "https://github.com/shahwali-web/express-nodejs/issues"
   },
   "homepage": "https://github.com/shahwali-web/express-nodejs#readme",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "nodemon": "^3.1.9"
+  }
 }

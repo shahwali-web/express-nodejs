@@ -41,4 +41,5 @@ jspm_packages/
 # VSCode settings
 .vscode/
 
-*.test.py
+test.py
+testing.json
