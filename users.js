@@ -9,6 +9,17 @@ const router = express.Router();
 
   
 router.get("/api/users", (req, res) => {
+  console.log(req.session)
+  console.log(req.session.id)
+  req.sessionStore.get(req.session.id, (err, sessionData)=>{
+
+    if(err){
+      console.log(err)
+      throw err;
+    }
+     console.log(sessionData)
+
+  })
     res.send(mockUser);
   });
 
