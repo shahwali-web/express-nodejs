@@ -7,9 +7,13 @@ import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import { mockUser } from "./content.js";
+import mongoose from "mongoose";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+mongoose.connect("mongodb://localhost/express_tutorials")
+.then(()=>console.log("MangoDb is Connected Successfully! "))
+.catch((err)=> console.log(`Error: ${err}`))
 
 app.use(cookieParser());
 app.use(express.json());

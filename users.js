@@ -3,6 +3,7 @@ import express from "express";
 // import resolveIndexByUserId from "./middleware.js"
 import { resolveIndexByUserId } from "./middleware.js";
 import { mockUser } from "./content.js";
+import { User } from "./mangoose/schemas/user.js";
 
 
 const router = express.Router();
@@ -49,12 +50,28 @@ router.get("/api/users/:id",resolveIndexByUserId, (req, res) => {
 
 
 
-  router.post("/api/users", (req, res) => {
-    const { body } = req;
-    let newUser = { id: mockUser[mockUser.length - 1].id + 1, ...body };
-    mockUser.push(newUser);
+  router.post("/api/users",async (req, res) => {
+    const {body} = req;
+    const newUser = new User(body)
+    try{
+      const savedUser = await newUser.save();
+      return res.status(201).send(newUser)
+
+    }catch(err){
+      console.log(err)
+      return res.sendStatus(400)
+
+    }
+
+
+
+
+
+    // const { body } = req;
+    // let newUser = { id: mockUser[mockUser.length - 1].id + 1, ...body };
+    // mockUser.push(newUser);
   
-    return res.status(201).send(newUser);
+    // return res.status(201).send(newUser);
 });
 
 
