@@ -1,23 +1,33 @@
 import express, { Router } from "express";
 import userRoutes from "./users.js";
 import productsRoutes from "./products.js";
-import path from "path";
+import path, { format } from "path";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import { mockUser } from "./content.js";
 import mongoose from "mongoose";
+import "./startegies/local-startegy.js";
+import passport from "passport";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-mongoose.connect("mongodb://localhost/express_tutorials")
-.then(()=>console.log("MangoDb is Connected Successfully! "))
-.catch((err)=> console.log(`Error: ${err}`))
 
+// Middleware setup
 app.use(cookieParser());
 app.use(express.json());
 
+
+// database mangoDB
+mongoose
+  .connect("mongodb://localhost/express_tutorials")
+  .then(() => console.log("MangoDb is Connected Successfully! "))
+  .catch((err) => console.log(`Error: ${err}`));
+
+
+
+  // Session
 app.use(
   session({
     secret: "anson the dev",
@@ -29,6 +39,33 @@ app.use(
   })
 );
 
+
+// Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Auth Router
+app.post("/api/auth", passport.authenticate("local"), (req, res) => {
+  res.status(200).send(req.user); 
+});
+
+
+
+app.get("/api/auth/status", (req, res) => {
+  console.log(`Inside auth status endpoint`);
+  console.log(req.user);
+  console.log(req.session);
+  return req.user ? res.send(req.user) : res.sendStatus(401);
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  if (!req.user) return res.sendStatus(401);
+  req.logOut((err) => {
+    if (err) return res.sendStatus(400);
+    res.send(200);
+  });
+});
+
 // Routers
 app.use(productsRoutes);
 app.use(userRoutes);
@@ -38,13 +75,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 app.use(express.static(path.join(__dirname, "public")));
 
+
+// Root route
 app.get("/", (req, res) => {
   res.cookie("Hello", "World", { maxAge: 60000 * 60 * 2 });
 
   res.sendFile(path.join(__dirname, "index.html"));
 });
-
-
 
 app.post("/api/auth", (req, res) => {
   const {
@@ -58,38 +95,37 @@ app.post("/api/auth", (req, res) => {
   return res.status(200).send(findUser);
 });
 
+app.get("/api/auth/status", (req, res) => {
+  req.sessionStore.get(req.sessionID, (err, session) => {
+    console.log(session);
+  });
+  return req.session.user
+    ? res.status(200).send(req.session.user)
+    : res.status(401).send({ MSG: " Not Authenticated" });
+});
 
 
-app.get("/api/auth/status",(req, res)=>{
-  req.sessionStore.get(req.sessionID, (err, session)=>{
-    console.log(session)
-  })
-  return req.session.user ? res.status(200).send(req.session.user):
-  res.status(401).send({"MSG":" Not Authenticated"})
 
-})
 
-app.post("/api/cart", (req, res) =>{
-  if(!req.session.user) return res.sendStatus(401);
+
+// Cart Router
+app.post("/api/cart", (req, res) => {
+  if (!req.session.user) return res.sendStatus(401);
   const item = req.body;
-  
-  const {cart} = req.session
-  if(cart){
-    cart.push(item)
-  }else{
-    req.session.cart = [item]
+
+  const { cart } = req.session;
+  if (cart) {
+    cart.push(item);
+  } else {
+    req.session.cart = [item];
   }
   return res.status(201).send(item);
-})
+});
 
-
-app.get("/api/cart",(req, res)=>{
-  if(!req.session.user) return res.sendStatus(401);
-  return res.send(req.session.cart ?? [])
-})
-
-
-
+app.get("/api/cart", (req, res) => {
+  if (!req.session.user) return res.sendStatus(401);
+  return res.send(req.session.cart ?? []);
+});
 
 
 
