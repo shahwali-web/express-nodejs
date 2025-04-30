@@ -7,17 +7,21 @@ import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import { mockUser } from "./content.js";
-import mongoose from "mongoose";
-import "./startegies/local-startegy.js";
+import mongoose, { Mongoose } from "mongoose";
+import "./strategies/discord-strategy.js"; 
 import passport from "passport";
+import MongoStore from "connect-mongo";
+import { DiscordUser } from "./mangoose/schemas/discord-user.js";
+
+
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
 
 // Middleware setup
 app.use(cookieParser());
 app.use(express.json());
-
 
 // database mangoDB
 mongoose
@@ -25,39 +29,43 @@ mongoose
   .then(() => console.log("MangoDb is Connected Successfully! "))
   .catch((err) => console.log(`Error: ${err}`));
 
-
-
-  // Session
+// Session
 app.use(
   session({
     secret: "anson the dev",
     saveUninitialized: false,
     resave: false,
-    cookie: {
-      maxAge: 60000 * 60 * 10,
-    },
+    cookie: { maxAge: 60000 * 60 * 10, },
+    store: MongoStore.create({
+      client: mongoose.connection.getClient(),
+    }),
   })
 );
-
 
 // Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Auth Router
-app.post("/api/auth", passport.authenticate("local"), (req, res) => {
-  res.status(200).send(req.user); 
-});
+
+// Discord Auth
+app.get("/api/auth/discord", passport.authenticate("discord"));
+app.get("/api/auth/discord/redirect",passport.authenticate("discord"),
+(req, res)=>{
+  res.sendStatus(200);
+}
+
+)
 
 
 
-app.get("/api/auth/status", (req, res) => {
-  console.log(`Inside auth status endpoint`);
-  console.log(req.user);
-  console.log(req.session);
-  return req.user ? res.send(req.user) : res.sendStatus(401);
-});
+// Checking login user
+// app.get("/api/auth/status", (req, res) => {
+//   console.log(req.session);
+//   return req.user ? res.send(req.user) : res.sendStatus(401);
+// });
 
+
+// LogOut User
 app.post("/api/auth/logout", (req, res) => {
   if (!req.user) return res.sendStatus(401);
   req.logOut((err) => {
@@ -70,10 +78,19 @@ app.post("/api/auth/logout", (req, res) => {
 app.use(productsRoutes);
 app.use(userRoutes);
 
+
+// Now I user Discord Auth
+// app.post("/api/auth", passport.authenticate("local"), (req, res) => {
+//   res.status(200).send(req.user);
+// });
+
 // Serve static files
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-app.use(express.static(path.join(__dirname, "public")));
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = dirname(__filename);
+// app.use(express.static(path.join(__dirname, "public")));
+
+
+
 
 
 // Root route
@@ -103,32 +120,6 @@ app.get("/api/auth/status", (req, res) => {
     ? res.status(200).send(req.session.user)
     : res.status(401).send({ MSG: " Not Authenticated" });
 });
-
-
-
-
-
-// Cart Router
-app.post("/api/cart", (req, res) => {
-  if (!req.session.user) return res.sendStatus(401);
-  const item = req.body;
-
-  const { cart } = req.session;
-  if (cart) {
-    cart.push(item);
-  } else {
-    req.session.cart = [item];
-  }
-  return res.status(201).send(item);
-});
-
-app.get("/api/cart", (req, res) => {
-  if (!req.session.user) return res.sendStatus(401);
-  return res.send(req.session.cart ?? []);
-});
-
-
-
 
 
 // Server Code
